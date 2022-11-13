@@ -155,9 +155,9 @@ function updateStatus() {
             } else if (i === 2) {
                 // right stick
                 // axis 3 = right horizontal
-                emitControllerAxisMove(j, 3, x);
+                emitControllerAxisMove(j, 3, x * controlSensitivity);
                 // axis 4 = right vertical
-                emitControllerAxisMove(j, 4, y);
+                emitControllerAxisMove(j, 4, y * controlSensitivity);
             }
         }
         controllers[j].prevState = currentState;
@@ -1573,7 +1573,8 @@ function emitMouseMove(x, y, deltaX, deltaY) {
         console.log(`x: ${x}, y:${y}, dX: ${deltaX}, dY: ${deltaY}`);
     }
     let coord = normalizeAndQuantizeUnsigned(x, y);
-    let delta = normalizeAndQuantizeSigned(deltaX, deltaY);
+    //let delta = normalizeAndQuantizeSigned(deltaX, deltaY);
+    let delta = normalizeAndQuantizeSigned(deltaX * controlSensitivity, deltaY * controlSensitivity);
     let Data = new DataView(new ArrayBuffer(9));
     Data.setUint8(0, MessageType.MouseMove);
     Data.setUint16(1, coord.x, true);
@@ -2151,9 +2152,21 @@ function registerKeyboardEvents() {
     };
 }
 
+let controlSensitivity = 1.0;
 function onExpandOverlay_Click( /* e */ ) {
     let overlay = document.getElementById('overlay');
     overlay.classList.toggle("overlay-shown");
+
+    /* ****** */
+    /* Update control sensitivity */
+    let sensitivitySlider = document.getElementById("sensitivitySlider");
+    let sensitivityValue = document.getElementById("sensitivityValue");
+    sensitivityValue.innerHTML = sensitivitySlider.value / 100;
+    sensitivitySlider.oninput = function()
+    {
+        controlSensitivity = this.value / 100;
+        sensitivityValue.innerHTML = controlSensitivity;
+    }
 }
 
 function start() {
