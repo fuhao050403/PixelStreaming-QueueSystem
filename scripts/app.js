@@ -2163,11 +2163,16 @@ function onExpandOverlay_Click( /* e */ ) {
     /* Update control sensitivity */
     let sensitivitySlider = document.getElementById("sensitivitySlider");
     let sensitivityValue = document.getElementById("sensitivityValue");
-    sensitivityValue.innerHTML = sensitivitySlider.value / 100;
+    sensitivitySlider.value = controlSensitivity * 100;
+    sensitivityValue.innerHTML = controlSensitivity;
     sensitivitySlider.oninput = function()
     {
         controlSensitivity = this.value / 100;
         sensitivityValue.innerHTML = controlSensitivity;
+    }
+    sensitivitySlider.onchange = function()
+    {
+        setCookie("controlSensitivity", controlSensitivity, 365);
     }
 }
 
@@ -2359,6 +2364,13 @@ function load() {
     setupFreezeFrameOverlay();
     registerKeyboardEvents();
     start();
+
+    /* ****** */
+    let cookieSensitivity = getCookie("controlSensitivity");
+    if (cookieSensitivity != null)
+    {
+        controlSensitivity = cookieSensitivity;
+    }
 }
 
 function switchToPlayingState()
@@ -2425,4 +2437,34 @@ function UE5HandleResponseFunction(data) {
                 emitUIInteraction(descriptor);
             }
     }
+}
+
+/* ****** */
+// functions used for cookies
+function setCookie(cname, cvalue, exdays) {
+    const d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    let expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie(cname)
+{
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for(let i = 0; i <ca.length; i++)
+    {
+        let c = ca[i];
+        while (c.charAt(0) == ' ')
+        {
+            c = c.substring(1);
+        }
+
+        if (c.indexOf(name) == 0)
+        {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
 }
