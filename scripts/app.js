@@ -131,10 +131,12 @@ function updateStatus() {
                 }
             } else if (currButton.pressed && prevButton.pressed) {
                 // repeat press / hold
+                /* ****** */
+                // Comment two axis buttons out for preventing not functioning as button activation under low game FPS
                 if (i == 6) {
-                    emitControllerAxisMove(j, 5, currButton.value);
+                    //emitControllerAxisMove(j, 5, currButton.value);
                 } else if (i == 7) {
-                    emitControllerAxisMove(j, 6, currButton.value);
+                    //emitControllerAxisMove(j, 6, currButton.value);
                 } else {
                     emitControllerButtonPressed(j, i, 1);
                 }
