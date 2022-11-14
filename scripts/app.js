@@ -2367,7 +2367,7 @@ function load() {
 
     /* ****** */
     let cookieSensitivity = getCookie("controlSensitivity");
-    if (cookieSensitivity != null)
+    if (cookieSensitivity != "" && cookieSensitivity != null)
     {
         controlSensitivity = cookieSensitivity;
     }
