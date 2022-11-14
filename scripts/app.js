@@ -2473,6 +2473,7 @@ function getCookie(cname)
     return "";
 }
 
+// Fullscreen functions
 function setupFullscreen()
 {
     let fullscreenBtn = document.getElementById("fullscreen");
