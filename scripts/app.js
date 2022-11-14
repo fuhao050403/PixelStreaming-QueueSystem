@@ -2366,11 +2366,15 @@ function load() {
     start();
 
     /* ****** */
+    // Initialize controlSensitivity with cookie
     let cookieSensitivity = getCookie("controlSensitivity");
     if (cookieSensitivity != "" && cookieSensitivity != null)
     {
         controlSensitivity = cookieSensitivity;
     }
+
+    // Fullscreen event
+    setupFullscreen();
 }
 
 function switchToPlayingState()
@@ -2467,4 +2471,35 @@ function getCookie(cname)
         }
     }
     return "";
+}
+
+function setupFullscreen()
+{
+    let fullscreenBtn = document.getElementById("fullscreen");
+    if (fullscreenBtn)
+    {
+		fullscreenBtn.onclick = function()
+        {
+            enterFullscreen();
+		};
+	}
+}
+
+function enterFullscreen()
+{
+    var fullscreenDiv = document.getElementById("player");
+	var fullscreenFunc = fullscreenDiv.requestFullscreen;
+
+	if (!fullscreenFunc)
+    {
+        ['mozRequestFullScreen', 'msRequestFullscreen', 'webkitRequestFullScreen'].forEach(function (req)
+        {
+            fullscreenFunc = fullscreenFunc || fullscreenDiv[req];
+        });
+	}
+
+	if (fullscreenFunc)
+    {
+		fullscreenFunc.call(fullscreenDiv);
+	}
 }
