@@ -522,7 +522,7 @@ input {
 	height: 50px;
 	opacity: 0.7;
 	background-color:rgb(31, 31, 31);
-	z-index: 100;
+	z-index: 99;
 }
 
 #fullscreen:hover {
