@@ -489,9 +489,7 @@ playerServer.on('connection', function (ws, req) {
 
 	function sendPlayersCount() {
 		let playerCountMsg = JSON.stringify({ type: 'playerCount', count: players.size });
-		for (let p of players.values()) {
-			p.ws.send(playerCountMsg);
-		}
+		for (let p of players.values()) { p.ws.send(playerCountMsg); }
 	}
 
 	/* ****** */
@@ -499,14 +497,8 @@ playerServer.on('connection', function (ws, req) {
 	{
 		for (let p of players.values())
 		{
-			if (p.queuePos == 0)
-			{
-				p.queuePos = playerCount - 1;
-			}
-			else
-			{
-				p.queuePos--;
-			}
+			if (p.queuePos == 0) { p.queuePos = playerCount - 1; }
+			else { p.queuePos--; }
 			let playerQueuePosMsg = JSON.stringify({ type: 'queuePos', pos: p.queuePos });
 			p.ws.send(playerQueuePosMsg);
 		}
@@ -516,10 +508,7 @@ playerServer.on('connection', function (ws, req) {
 	{
 		for (let p of players.values())
 		{
-			if (leftPlayerPos > -1 && p.queuePos > leftPlayerPos)
-			{
-				p.queuePos--;
-			}
+			if (leftPlayerPos > -1 && p.queuePos > leftPlayerPos) { p.queuePos--; }
 			let playerQueuePosMsg = JSON.stringify({ type: 'queuePos', pos: p.queuePos });
 			p.ws.send(playerQueuePosMsg);
 		}
@@ -601,12 +590,15 @@ playerServer.on('connection', function (ws, req) {
 	sendPlayerConnectedToFrontend();
 	sendPlayerConnectedToMatchmaker();
 
-	ws.send(JSON.stringify(clientConfig));
-
-	sendMessageToController({ type: "playerConnected", playerId: playerId, dataChannel: true, sfu: false }, skipSFU);
+	// Message receive sequence on client: playerCount -> queuePos -> config -> offer ->iceCandidate
 	sendPlayersCount();
 	/* ****** */
 	sendQueuePos(-1);
+	/* ****** */
+
+	ws.send(JSON.stringify(clientConfig)); // config
+
+	sendMessageToController({ type: "playerConnected", playerId: playerId, dataChannel: true, sfu: false }, skipSFU); // offer
 });
 
 function disconnectAllPlayers(code, reason) {

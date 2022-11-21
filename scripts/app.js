@@ -2193,40 +2193,19 @@ function start() {
         invalidateFreezeFrameOverlay();
         shouldShowPlayOverlay = true;
         resizePlayerStyle();
-        /* ****** */
-        //preConnect();
-        /* ****** */
     } else {
         connect();
     }
 }
 
-// let ws_pre;
-// function preConnect()
-// {
-//     window.WebSocket = window.WebSocket || window.MozWebSocket;
-
-//     if (!window.WebSocket) {
-//         alert('Your browser doesn\'t support WebSocket');
-//         return;
-//     }
-    
-//     ws_pre = new WebSocket(window.location.href.replace('http://', 'ws://').replace('https://', 'wss://'));
-
-//     ws_pre.onmessage = function(event) {
-//         let msg = JSON.parse(event.data);
-//         if (msg.type === 'playerCount')
-//         {
-//             console.log("%c[Inbound SS (playerCount)]", "background: lightblue; color: black", msg.count);
-//             /* ****** */
-//             document.getElementById('sidebar-playerCount').innerHTML = 'Player count: ' + msg.count;
-//             /* ****** */
-//         }
-//     };
-// }
-
+let configMsg = null;
+let offerMsg = null;
+let candidateMsg = null;
 let playerCount = 1;
+let queuePos = -1;
 let isPlaying = false;
+let allowAccessPlayerCount = 3;
+
 function connect() {
     "use strict";
 
@@ -2236,25 +2215,19 @@ function connect() {
         alert('Your browser doesn\'t support WebSocket');
         return;
     }
-    
-    //ws_pre.close(4000);
 
-    ws = new WebSocket(window.location.href.replace('http://', 'ws://').replace('https://', 'wss://'));
+    // Adding if check, preventing repeatly invoked when player is in waiting and clicking overlay
+    if (webRtcPlayerObj) return;
 
-    /* ****** */
-    // ws.onopen = function(event)
-    // {
-    //     const playerName = document.getElementById('sidebar-playername').value;
-    //     ws.send(JSON.stringify({ type: 'playerName', data: playerName }));
-    // }
-    /* ****** */
+    if (ws == null || ws == undefined)
+    {
+        ws = new WebSocket(window.location.href.replace('http://', 'ws://').replace('https://', 'wss://'));
+    }
 
     ws.onmessage = function(event) {
         let msg = JSON.parse(event.data);
-        if (msg.type === 'config') {
-            console.log("%c[Inbound SS (config)]", "background: lightblue; color: black", msg);
-            onConfig(msg);
-        } else if (msg.type === 'playerCount') {
+        if (msg.type === 'playerCount')
+        {
             console.log("%c[Inbound SS (playerCount)]", "background: lightblue; color: black", msg);
             /* ****** */
             playerCount = msg.count;
@@ -2262,7 +2235,6 @@ function connect() {
             if (playerCount == 1)
             {
                 stopAfkWarningTimer();
-                console.log(afk.warnTimer);
                 if (afk.countdownTimer != undefined)
                 {
                     hideOverlay();
@@ -2277,9 +2249,12 @@ function connect() {
                 }
             }
             /* ****** */
-        } else if (msg.type === 'queuePos') {
+        }
+        else if (msg.type === 'queuePos')
+        {
             console.log("%c[Inbound SS (queuePos)]", "background: lightblue; color: black", msg);
             /* ****** */
+            queuePos = msg.pos;
             if (msg.pos == 0)
             {
                 // Switch player
@@ -2291,27 +2266,69 @@ function connect() {
                 document.getElementById('queuePos-pos').innerHTML = msg.pos;
                 stopAfkWarningTimer();
             }
+
+            // when queuePos updated, check if allow access
+            if (msg.pos > -1 && msg.pos < allowAccessPlayerCount)
+            {
+                if (webRtcPlayerObj == null || webRtcPlayerObj == undefined)
+                {
+                    startStream();
+                }
+            }
+            else
+            {
+                // Print 'please wait' text on overlay and showing current queuing position
+                document.getElementById('playButton').innerHTML =
+                    'First ' +
+                    allowAccessPlayerCount +
+                    ' players allowed to access (' +
+                    (msg.pos - allowAccessPlayerCount + 1) +
+                    ' ahead), Please wait...';
+            }
             /* ****** */
-        } else if (msg.type === 'offer') {
+        }
+        else if (msg.type === 'config')
+        {
+            console.log("%c[Inbound SS (config)]", "background: lightblue; color: black", msg);
+            //onConfig(msg);
+            if (queuePos > -1 && queuePos < allowAccessPlayerCount) { onConfig(msg); }
+            configMsg = msg;
+        }
+        else if (msg.type === 'offer')
+        {
             console.log("%c[Inbound SS (offer)]", "background: lightblue; color: black", msg);
-            onWebRtcOffer(msg);
-        } else if (msg.type === 'answer') {
+            //onWebRtcOffer(msg);
+            if (queuePos > -1 && queuePos < allowAccessPlayerCount) { onWebRtcOffer(msg); }
+            offerMsg = msg;
+        }
+        else if (msg.type === 'iceCandidate')
+        {
+            //onWebRtcIce(msg.candidate);
+            if (queuePos > -1 && queuePos < allowAccessPlayerCount) { onWebRtcIce(msg.candidate); }
+            candidateMsg = msg.candidate;
+        }
+        else if (msg.type === 'answer')
+        {
             console.log("%c[Inbound SS (answer)]", "background: lightblue; color: black", msg);
             onWebRtcAnswer(msg);
-        } else if (msg.type === 'iceCandidate') {
-            onWebRtcIce(msg.candidate);
-        } else if(msg.type === 'warning' && msg.warning) {
+        }
+        else if(msg.type === 'warning' && msg.warning)
+        {
             console.warn(msg.warning);
-        } else {
+        }
+        else
+        {
             console.error("Invalid SS message type", msg.type);
         }
     };
 
-    ws.onerror = function(event) {
+    ws.onerror = function(event)
+    {
         console.log(`WS error: ${JSON.stringify(event)}`);
     };
 
-    ws.onclose = function(event) {
+    ws.onclose = function(event)
+    {
         console.log(`WS closed: ${JSON.stringify(event.code)} - ${event.reason}`);
         ws = undefined;
         is_reconnection = true;
@@ -2377,26 +2394,32 @@ function load() {
     setupFullscreen();
 }
 
+// Manually startRtcStream
+function startStream()
+{
+    // config
+    if (!webRtcPlayerObj && configMsg != null) { onConfig(configMsg); }
+    // offer
+    if (webRtcPlayerObj && offerMsg != null) { onWebRtcOffer(offerMsg); }
+    // iceCandidate
+    if (webRtcPlayerObj && candidateMsg != null) { onWebRtcIce(candidateMsg); }
+}
+
+// When player got first in queue, then start playing
 function switchToPlayingState()
 {
     document.getElementById('queuePos-icon').setAttribute('src', 'images/gamepad.png');
     document.getElementById('queuePos-pos').innerHTML = 'PLAYING!';
 
     // Show switchPlayerWidget in UE
-    let descriptor = {
-        event: 'SwitchPlayer',
-    };
+    let descriptor = { event: 'SwitchPlayer' };
     emitUIInteraction(descriptor);
 
     // Set isPlaying to true after 3 second for corresponding the UE widget update
     isPlaying = true;
 
-    if (playerCount > 1)
-    {
-        setTimeout(function()
-        {
-            startAfkWarningTimer();
-        }, 3000);
+    if (playerCount > 1) {
+        setTimeout(function() { startAfkWarningTimer(); }, 3000);
     }
 
     // Register listener function for reciving message from UE
@@ -2435,9 +2458,7 @@ function UE5HandleResponseFunction(data) {
             // and close the Widget cause NetState widget is still on (Showing "Connecting..." text)
             else
             {
-                let descriptor = {
-                    event: 'LeaderContinue',
-                };
+                let descriptor = { event: 'LeaderContinue' };
                 emitUIInteraction(descriptor);
             }
     }
