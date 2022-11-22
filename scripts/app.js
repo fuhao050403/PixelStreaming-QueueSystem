@@ -2200,11 +2200,11 @@ function start() {
 
 let configMsg = null;
 let offerMsg = null;
-let candidateMsg = null;
+let candidateMsgs = [];
 let playerCount = 1;
 let queuePos = -1;
 let isPlaying = false;
-let allowAccessPlayerCount = 3;
+let allowAccessPlayerCount = 1;
 
 function connect() {
     "use strict";
@@ -2303,9 +2303,11 @@ function connect() {
         }
         else if (msg.type === 'iceCandidate')
         {
+            console.log("%c[Inbound SS (iceCandidate)]", "background: lightblue; color: black");
             //onWebRtcIce(msg.candidate);
             if (queuePos > -1 && queuePos < allowAccessPlayerCount) { onWebRtcIce(msg.candidate); }
-            candidateMsg = msg.candidate;
+            //candidateMsg = msg.candidate;
+            candidateMsgs.push(msg.candidate);
         }
         else if (msg.type === 'answer')
         {
@@ -2402,7 +2404,11 @@ function startStream()
     // offer
     if (webRtcPlayerObj && offerMsg != null) { onWebRtcOffer(offerMsg); }
     // iceCandidate
-    if (webRtcPlayerObj && candidateMsg != null) { onWebRtcIce(candidateMsg); }
+    if (webRtcPlayerObj && candidateMsgs.length != 0)
+    {
+        candidateMsgs.forEach(candidate => onWebRtcIce(candidate));
+        //onWebRtcIce(candidateMsg);
+    }
 }
 
 // When player got first in queue, then start playing
