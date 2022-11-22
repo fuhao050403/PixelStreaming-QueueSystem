@@ -2204,7 +2204,7 @@ let candidateMsgs = [];
 let playerCount = 1;
 let queuePos = -1;
 let isPlaying = false;
-let allowAccessPlayerCount = 1;
+let allowAccessPlayerCount = 3;
 
 function connect() {
     "use strict";
@@ -2270,20 +2270,13 @@ function connect() {
             // when queuePos updated, check if allow access
             if (msg.pos > -1 && msg.pos < allowAccessPlayerCount)
             {
-                if (webRtcPlayerObj == null || webRtcPlayerObj == undefined)
-                {
-                    startStream();
-                }
+                if (webRtcPlayerObj == null || webRtcPlayerObj == undefined) { startStream(); }
             }
             else
             {
                 // Print 'please wait' text on overlay and showing current queuing position
                 document.getElementById('playButton').innerHTML =
-                    'First ' +
-                    allowAccessPlayerCount +
-                    ' players allowed to access (' +
-                    (msg.pos - allowAccessPlayerCount + 1) +
-                    ' ahead), Please wait...';
+                    'First ' + allowAccessPlayerCount + ' players allowed to access, Please wait...';
             }
             /* ****** */
         }
@@ -2404,11 +2397,7 @@ function startStream()
     // offer
     if (webRtcPlayerObj && offerMsg != null) { onWebRtcOffer(offerMsg); }
     // iceCandidate
-    if (webRtcPlayerObj && candidateMsgs.length != 0)
-    {
-        candidateMsgs.forEach(candidate => onWebRtcIce(candidate));
-        //onWebRtcIce(candidateMsg);
-    }
+    if (webRtcPlayerObj && candidateMsgs.length != 0) { candidateMsgs.forEach(candidate => onWebRtcIce(candidate)); }
 }
 
 // When player got first in queue, then start playing
