@@ -27,6 +27,10 @@ let matchViewportResolution;
 let lastTimeResized = new Date().getTime();
 let resizeTimeout;
 
+/* ****** */
+let dataChannelConncted = false;
+/* ****** */
+
 let onDataChannelConnected;
 let responseEventListeners = new Map();
 
@@ -678,7 +682,8 @@ function setupWebRtcPlayer(htmlElement, config) {
             requestQualityControl();
 
             /* ****** */
-            if (queuePos == 0 && !isPlaying) { switchToPlayingState(); }
+            dataChannelConncted = true;
+            if (queuePos == 0) { switchToPlayingState();}
         }
     };
 
@@ -855,6 +860,9 @@ function setupWebRtcPlayer(htmlElement, config) {
                 qualityControlOwnershipCheckBox.disabled = ownership;
                 qualityControlOwnershipCheckBox.checked = ownership;
             }
+
+            /* ****** */
+            if (queuePos == 0) { switchToPlayingState();}
         } else if (view[0] === ToClientMessageType.Response) {
             let response = new TextDecoder("utf-16").decode(data.slice(1));
             for (let listener of responseEventListeners.values()) {
@@ -2273,17 +2281,6 @@ function connect() {
 
             /* ****** */
             queuePos = msg.pos;
-            // if first in queue, then Switch player
-            if (msg.pos == 0)
-            {
-                if (!isPlaying && webRtcPlayerObj) { switchToPlayingState(); }
-            }
-            else
-            {
-                document.getElementById('queuePos-icon').setAttribute('src', 'images/queue.png');
-                document.getElementById('queuePos-pos').innerHTML = msg.pos;
-                stopAfkWarningTimer();
-            }
 
             // when queuePos updated, check if allow access
             if (msg.pos > -1 && msg.pos < allowAccessPlayerCount)
@@ -2292,9 +2289,49 @@ function connect() {
             }
             else
             {
+                // destroy `webRtcPlayerObj` if any
+                if (webRtcPlayerObj) {
+                    // Reset html elements to default state
+                    let playerDiv = document.getElementById('player');
+                    playerDiv.removeChild(webRtcPlayerObj.video);
+                    playerDiv.removeChild(webRtcPlayerObj.audio);
+                    let freezeFrameDiv = document.getElementById('freezeFrameOverlay');
+                    playerDiv.removeChild(freezeFrameDiv);
+
+                    // Close WebRTC player instance
+                    webRtcPlayerObj.close();
+                    webRtcPlayerObj = undefined;
+                    
+                    // Set connection state to default
+                    dataChannelConncted = false;
+                    qualityController = false;
+
+                    // Set config/offer/iceCandidate to default
+                    let configMsg = null;
+                    let offerMsg = null;
+                    let candidateMsgs = [];
+
+                    isPlaying = false;
+
+                    // Close WebSocket, then it will be automatically re-connect in onclose()
+                    ws.close();
+                }
                 // Print 'please wait' text on overlay and showing current queuing position
-                document.getElementById('playButton').innerHTML =
-                    'First ' + allowAccessPlayerCount + ' players allowed to access, Please wait...';
+                showTextOverlay('First ' + allowAccessPlayerCount + ' players allowed to access, Please wait...');
+                // document.getElementById('playButton').innerHTML =
+                //     'First ' + allowAccessPlayerCount + ' players allowed to access, Please wait...';
+            }
+
+            // if first in queue, then Switch player
+            if (msg.pos == 0)
+            {
+                switchToPlayingState();
+            }
+            else
+            {
+                document.getElementById('queuePos-icon').setAttribute('src', 'images/queue.png');
+                document.getElementById('queuePos-pos').innerHTML = msg.pos;
+                stopAfkWarningTimer();
             }
             /* ****** */
         }
@@ -2356,7 +2393,8 @@ function connect() {
 
         showTextOverlay(`Disconnected: ${event.reason}`);
         //let reclickToStart = setTimeout(start, 4000);
-        start();
+        //start();
+        connect();
 
         /* ****** */
         // When AFK timer ended, onclose will be called
@@ -2426,8 +2464,14 @@ function startStream()
 }
 
 // When player got first in queue, then start playing
+// Can be called at 3 places:
+//    1.data channel connected
+//    2.quality controller updated
+//    3.queuePos updated and being first player in queue
 function switchToPlayingState()
 {
+    if (webRtcPlayerObj == null || webRtcPlayerObj == undefined || !dataChannelConncted || isPlaying) return;
+
     document.getElementById('queuePos-icon').setAttribute('src', 'images/gamepad.png');
     document.getElementById('queuePos-pos').innerHTML = 'PLAYING!';
 
@@ -2446,6 +2490,7 @@ function switchToPlayingState()
     // Register listener function for reciving message from UE
     addResponseEventListener("handle_responses", UE5HandleResponseFunction);
 
+    console.log("*** The controll of the game has hand over to YOU ***");
 }
 
 // Receiving data from Unreal Engine
