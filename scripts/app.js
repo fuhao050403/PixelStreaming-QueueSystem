@@ -676,6 +676,9 @@ function setupWebRtcPlayer(htmlElement, config) {
         if (ws && ws.readyState === WS_OPEN_STATE) {
             showTextOverlay('WebRTC data channel connected... waiting for video');
             requestQualityControl();
+
+            /* ****** */
+            if (queuePos == 0 && !isPlaying) { switchToPlayingState(); }
         }
     };
 
@@ -2155,6 +2158,7 @@ function registerKeyboardEvents() {
 }
 
 let controlSensitivity = 1.0;
+let playerName = "Guest";
 function onExpandOverlay_Click( /* e */ ) {
     let overlay = document.getElementById('overlay');
     overlay.classList.toggle("overlay-shown");
@@ -2173,6 +2177,18 @@ function onExpandOverlay_Click( /* e */ ) {
     sensitivitySlider.onchange = function()
     {
         setCookie("controlSensitivity", controlSensitivity, 365);
+    }
+
+    /* Update player name */
+    let playerNameSubmitBtn = document.getElementById("playerName-submit");
+    let PlayerNameInput = document.getElementById("playerNameInput");
+
+    PlayerNameInput.value = playerName;
+
+    playerNameSubmitBtn.onclick = function()
+    {
+        playerName = PlayerNameInput.value;
+        setCookie("playerName", playerName, 365);
     }
 }
 
@@ -2205,6 +2221,7 @@ let playerCount = 1;
 let queuePos = -1;
 let isPlaying = false;
 let allowAccessPlayerCount = 3;
+let verifyCode = null; // for getting "GameOver" Response from UE, and verify if current player is player in control
 
 function connect() {
     "use strict";
@@ -2253,12 +2270,13 @@ function connect() {
         else if (msg.type === 'queuePos')
         {
             console.log("%c[Inbound SS (queuePos)]", "background: lightblue; color: black", msg);
+
             /* ****** */
             queuePos = msg.pos;
+            // if first in queue, then Switch player
             if (msg.pos == 0)
             {
-                // Switch player
-                if (!isPlaying) { switchToPlayingState(); }
+                if (!isPlaying && webRtcPlayerObj) { switchToPlayingState(); }
             }
             else
             {
@@ -2378,6 +2396,13 @@ function load() {
     start();
 
     /* ****** */
+    // Initilize playerName with cookie
+    let cookiePlayerName = getCookie("playerName");
+    if (cookiePlayerName != "" && cookiePlayerName != null)
+    {
+        playerName = cookiePlayerName;
+    }
+
     // Initialize controlSensitivity with cookie
     let cookieSensitivity = getCookie("controlSensitivity");
     if (cookieSensitivity != "" && cookieSensitivity != null)
@@ -2406,8 +2431,9 @@ function switchToPlayingState()
     document.getElementById('queuePos-icon').setAttribute('src', 'images/gamepad.png');
     document.getElementById('queuePos-pos').innerHTML = 'PLAYING!';
 
-    // Show switchPlayerWidget in UE
-    let descriptor = { event: 'SwitchPlayer' };
+    // Update playerName and show SwitchPlayer widget in UE
+    verifyCode = Date.now().toString();
+    let descriptor = { event: 'SwitchPlayer', playername: playerName, playercode: verifyCode };
     emitUIInteraction(descriptor);
 
     // Set isPlaying to true after 3 second for corresponding the UE widget update
@@ -2419,20 +2445,20 @@ function switchToPlayingState()
 
     // Register listener function for reciving message from UE
     addResponseEventListener("handle_responses", UE5HandleResponseFunction);
+
 }
 
-function rejoin()
-{
-    // Server will send update queue, and send queue info to all clients
-    ws.send(JSON.stringify({ type: 'rejoin' }));
-}
-
+// Receiving data from Unreal Engine
 function UE5HandleResponseFunction(data) {
-    switch (data) {
-        case "PlayerDead":
+    let data_json = JSON.parse(data);
+    switch (data_json.type) {
+        case "GameOver":
             // Hand the game control over to next player
             if (playerCount > 1)
             {
+                if (data_json.playercode != verifyCode) break;
+
+                // Only player in playing will run the following code
                 isPlaying = false;
 
                 stopAfkWarningTimer();
@@ -2446,6 +2472,7 @@ function UE5HandleResponseFunction(data) {
 
                 document.exitPointerLock();
 
+                // Ask server to update queue
                 rejoin();
             }
             // If only 1 online player on server, continue playing
@@ -2458,6 +2485,13 @@ function UE5HandleResponseFunction(data) {
             }
     }
 }
+
+function rejoin()
+{
+    // Server will send update queue, and send queue info to all clients
+    ws.send(JSON.stringify({ type: 'rejoin' }));
+}
+
 
 /* ****** */
 // functions used for cookies
