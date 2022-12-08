@@ -133,12 +133,24 @@ video{
 
 #queuePos-state{
 	float: left;
-	font-size: 25px;
-	font-weight: bold;
 	margin-left: 9px;
 	margin-top: 9px;
 	padding-right: 12px;
 	border-right: 2px solid #868686;
+}
+
+#queuePos-pos
+{
+	font-size: 25px;
+	font-weight: bold;
+}
+
+#queuePos-count
+{
+	font-size: 16px;
+	font-style: italic;
+	margin-left: 5px;
+	color: rgb(150, 150, 150);
 }
 
 .setting {
