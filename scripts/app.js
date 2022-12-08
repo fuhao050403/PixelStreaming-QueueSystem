@@ -2248,7 +2248,7 @@ function connect() {
             console.log("%c[Inbound SS (playerCount)]", "background: lightblue; color: black", msg);
             /* ****** */
             playerCount = msg.count;
-            document.getElementById('queuePos-count').innerHTML = '(Online: ' + playerCount + ')';
+            document.getElementById('queuePos-count').innerHTML = playerCount;
             if (playerCount == 1)
             {
                 stopAfkWarningTimer();

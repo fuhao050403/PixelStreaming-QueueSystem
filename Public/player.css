@@ -131,12 +131,11 @@ video{
 	margin-top: 9px;
 }
 
-#queuePos-state{
+#queuePos-pos-box{
 	float: left;
 	margin-left: 9px;
 	margin-top: 9px;
 	padding-right: 12px;
-	border-right: 2px solid #868686;
 }
 
 #queuePos-pos
@@ -145,11 +144,28 @@ video{
 	font-weight: bold;
 }
 
+#queuePos-count-icon
+{
+	float: left;
+	margin-left: 8px;
+	margin-top: 12px;
+}
+
+#queuePos-count-box
+{
+	float: left;
+	height: 63%;
+	margin-left: 8px;
+	margin-top: 9px;
+	padding-right: 18px;
+	border-right: 2px solid #868686;
+}
+
 #queuePos-count
 {
-	font-size: 16px;
-	font-style: italic;
-	margin-left: 5px;
+	font-size: 20px;
+	font-weight: bold;
+	line-height: 28px;
 	color: rgb(150, 150, 150);
 }
 
