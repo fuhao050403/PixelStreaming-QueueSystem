@@ -1,5 +1,5 @@
 # PixelStreaming-QueueSystem
-Queuing system for Pixel Streaming of Unreal Engine
+Queuing system for Pixel Streaming of Unreal Engine (only for ver.5.0.3)
 
 Functionalities:
  - Total online player count
