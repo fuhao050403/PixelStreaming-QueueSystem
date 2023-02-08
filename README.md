@@ -2,12 +2,12 @@
 Queuing system for Pixel Streaming of Unreal Engine (only for ver.5.0.3)
 
 Functionalities:
- - Total online player count
- - Current position in the queue, only first player in the queue has controll of the game
- - Every player has 2 minutes of play time (No this constrain when server has only 1 active player)
+ - Total player count
+ - Queue position
+ - Limited play time
  - Fixed Gamepad problem of only two thumbsticks able to work
- - Add slider in setting overlay, allowing adjusting control sensitivity
- - Limit on accessible player amount (now set to 3)
+ - Slider for adjusting control sensitivity
+ - Limited accessible player amount
 
 How to use:
 Copy and paste all files to SignallingWebServer folder under your project build folder.
